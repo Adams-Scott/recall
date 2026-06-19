@@ -8,6 +8,8 @@
   </div>
 
   <form class="card stack" method="post" action="/notes">
+    <label for="title">Title (optional)</label>
+    <input id="title" name="title" placeholder="Leave blank to auto-generate after enrichment" />
     <label for="original_note">New note</label>
     <textarea id="original_note" name="original_note" rows="4" placeholder="Something hard to remember..."></textarea>
     <button type="submit">Save note</button>
@@ -25,12 +27,14 @@
 </section>
 
 <section class="notes-grid">
+  {% if has_searched %}
   {% for note in notes %}
   <article class="card note-card">
     <div class="note-meta">
       <span>{{ note.enrichment_status }}</span>
       <span>#{{ note.id }}</span>
     </div>
+    <h2>{{ note.title or "Untitled" }}</h2>
     <p>{{ note.original_note }}</p>
     {% if note.tags %}
     <p class="tags">{{ note.tags }}</p>
@@ -39,8 +43,27 @@
   </article>
   {% else %}
   <article class="card empty-state">
-    <p>No notes yet.</p>
+    <p>No matching notes for your search.</p>
   </article>
   {% endfor %}
+  {% else %}
+  <article class="card empty-state">
+    <p>Run a search to view results.</p>
+  </article>
+  {% endif %}
 </section>
+
+{% if has_searched and total_pages > 1 %}
+<section class="toolbar card pagination-row">
+  <span>Showing page {{ page }} of {{ total_pages }} ({{ total_results }} results)</span>
+  <div class="row">
+    {% if page > 1 %}
+    <a href="/?q={{ query }}&page={{ page - 1 }}">Previous</a>
+    {% endif %}
+    {% if page < total_pages %}
+    <a href="/?q={{ query }}&page={{ page + 1 }}">Next</a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
 {% endblock %}

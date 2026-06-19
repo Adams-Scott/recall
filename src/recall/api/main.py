@@ -34,7 +34,7 @@ def list_notes(service: NoteService = Depends(get_note_service)):
 
 @app.post("/notes", response_model=NoteRead, status_code=201)
 def create_note(payload: NoteCreate, service: NoteService = Depends(get_note_service)):
-    return service.create_note(payload.original_note)
+    return service.create_note(payload.original_note, title=payload.title)
 
 
 @app.get("/notes/{note_id}", response_model=NoteRead)
@@ -47,7 +47,7 @@ def get_note(note_id: int, service: NoteService = Depends(get_note_service)):
 
 @app.put("/notes/{note_id}", response_model=NoteRead)
 def update_note(note_id: int, payload: NoteUpdate, service: NoteService = Depends(get_note_service)):
-    note = service.update_note(note_id, payload.original_note)
+    note = service.update_note(note_id, payload.original_note, title=payload.title)
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return note

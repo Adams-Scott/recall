@@ -6,10 +6,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class NoteCreate(BaseModel):
+    title: str = ""
     original_note: str = Field(min_length=1)
 
 
 class NoteUpdate(BaseModel):
+    title: str = ""
     original_note: str = Field(min_length=1)
 
 
@@ -17,6 +19,7 @@ class NoteRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    title: str | None
     original_note: str
     elaborated_note: str | None
     tags: str | None

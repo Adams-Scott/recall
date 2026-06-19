@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from pathlib import Path
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -49,3 +49,11 @@ def init_db() -> None:
     from recall.core.models import Note  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+
+    with engine.begin() as conn:
+        columns = {
+            row[1]
+            for row in conn.execute(text("PRAGMA table_info(notes)"))
+        }
+        if "title" not in columns:
+            conn.execute(text("ALTER TABLE notes ADD COLUMN title VARCHAR(255)"))

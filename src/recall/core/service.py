@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from recall.core.llm import BaseLLMClient
@@ -14,8 +14,9 @@ class NoteService:
         self.session = session
         self.llm_client = llm_client
 
-    def create_note(self, original_note: str) -> Note:
-        note = Note(original_note=original_note.strip(), enrichment_status="pending")
+    def create_note(self, original_note: str, title: str = "") -> Note:
+        normalized_title = title.strip() or None
+        note = Note(title=normalized_title, original_note=original_note.strip(), enrichment_status="pending")
         self.session.add(note)
         self.session.commit()
         self.session.refresh(note)
@@ -28,11 +29,12 @@ class NoteService:
     def get_note(self, note_id: int) -> Note | None:
         return self.session.get(Note, note_id)
 
-    def update_note(self, note_id: int, original_note: str) -> Note | None:
+    def update_note(self, note_id: int, original_note: str, title: str = "") -> Note | None:
         note = self.get_note(note_id)
         if note is None:
             return None
 
+        note.title = title.strip() or None
         note.original_note = original_note.strip()
         note.elaborated_note = None
         note.tags = None
@@ -64,6 +66,7 @@ class NoteService:
             pattern = f"%{term}%"
             statement = statement.where(
                 or_(
+                    Note.title.ilike(pattern),
                     Note.original_note.ilike(pattern),
                     Note.elaborated_note.ilike(pattern),
                     Note.tags.ilike(pattern),
@@ -71,6 +74,37 @@ class NoteService:
             )
         statement = statement.order_by(Note.updated_at.desc(), Note.id.desc())
         return list(self.session.scalars(statement).all())
+
+    def search_notes_paginated(self, query: str, page: int = 1, page_size: int = 10) -> tuple[list[Note], int]:
+        normalized = query.strip().lower()
+        if not normalized:
+            return [], 0
+
+        terms = [term for term in normalized.split() if term]
+        if not terms:
+            return [], 0
+
+        statement = select(Note)
+        for term in terms:
+            pattern = f"%{term}%"
+            statement = statement.where(
+                or_(
+                    Note.title.ilike(pattern),
+                    Note.original_note.ilike(pattern),
+                    Note.elaborated_note.ilike(pattern),
+                    Note.tags.ilike(pattern),
+                )
+            )
+
+        count_statement = select(func.count()).select_from(statement.subquery())
+        total = self.session.scalar(count_statement) or 0
+
+        paged_statement = (
+            statement.order_by(Note.updated_at.desc(), Note.id.desc())
+            .offset((max(page, 1) - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(self.session.scalars(paged_statement).all()), total
 
     def claim_pending_notes(self, limit: int) -> list[Note]:
         statement = (
@@ -92,6 +126,8 @@ class NoteService:
             return None
 
         result = self.llm_client.enrich(note.original_note)
+        if not note.title:
+            note.title = result.title
         note.elaborated_note = result.elaborated_note
         note.tags = ", ".join(result.tags)
         note.enrichment_status = "done"

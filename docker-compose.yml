@@ -8,7 +8,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - recall_data:/data
+      - ./recall_data:/data
 
   web:
     build: .
@@ -19,7 +19,7 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - recall_data:/data
+      - ./recall_data:/data
 
   worker:
     build: .
@@ -30,7 +30,7 @@ services:
       RECALL_ENRICH_INTERVAL_SECONDS: "60"
       RECALL_ENRICH_BATCH_SIZE: "10"
     volumes:
-      - recall_data:/data
+      - ./recall_data:/data
 
 volumes:
   recall_data:

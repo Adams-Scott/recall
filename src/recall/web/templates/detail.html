@@ -2,10 +2,11 @@
 {% block content %}
 <section class="card stack">
   <a href="/">Back</a>
-  <h1>Note #{{ note.id }}</h1>
+  <h1>{{ note.title or "Untitled" }}</h1>
+  <p class="eyebrow">Note #{{ note.id }}</p>
   <p class="eyebrow">Original</p>
   <p>{{ note.original_note }}</p>
-  <p class="eyebrow">Elaboration</p>
+  <p class="eyebrow">Enriched text</p>
   <p>{{ note.elaborated_note or "Waiting for enrichment." }}</p>
   <p class="eyebrow">Tags</p>
   <p>{{ note.tags or "No tags yet." }}</p>

@@ -30,22 +30,40 @@ def get_note_service(session: Session = Depends(get_session)) -> NoteService:
 
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, q: str = "", service: NoteService = Depends(get_note_service)):
-    notes = service.search_notes(q) if q else service.list_notes()
+def home(request: Request, q: str = "", page: int = 1, service: NoteService = Depends(get_note_service)):
+    has_searched = bool(q.strip())
+    current_page = max(page, 1)
+    page_size = 10
+    if has_searched:
+        notes, total_results = service.search_notes_paginated(q, page=current_page, page_size=page_size)
+    else:
+        notes, total_results = [], 0
+
+    total_pages = (total_results + page_size - 1) // page_size if total_results else 0
     return templates.TemplateResponse(
+        request,
         "index.html",
-        {
+        context={
             "request": request,
             "app_name": settings.app_name,
             "notes": notes,
             "query": q,
+            "has_searched": has_searched,
+            "page": current_page,
+            "page_size": page_size,
+            "total_results": total_results,
+            "total_pages": total_pages,
         },
     )
 
 
 @app.post("/notes")
-def create_note(original_note: str = Form(...), service: NoteService = Depends(get_note_service)):
-    service.create_note(original_note)
+def create_note(
+    original_note: str = Form(...),
+    title: str = Form(default=""),
+    service: NoteService = Depends(get_note_service),
+):
+    service.create_note(original_note, title=title)
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -55,8 +73,9 @@ def note_detail(request: Request, note_id: int, service: NoteService = Depends(g
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return templates.TemplateResponse(
+        request,
         "detail.html",
-        {
+        context={
             "request": request,
             "app_name": settings.app_name,
             "note": note,
@@ -70,8 +89,9 @@ def edit_note(request: Request, note_id: int, service: NoteService = Depends(get
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return templates.TemplateResponse(
+        request,
         "edit.html",
-        {
+        context={
             "request": request,
             "app_name": settings.app_name,
             "note": note,
@@ -80,8 +100,13 @@ def edit_note(request: Request, note_id: int, service: NoteService = Depends(get
 
 
 @app.post("/notes/{note_id}/edit")
-def save_note(note_id: int, original_note: str = Form(...), service: NoteService = Depends(get_note_service)):
-    if service.update_note(note_id, original_note) is None:
+def save_note(
+    note_id: int,
+    original_note: str = Form(...),
+    title: str = Form(default=""),
+    service: NoteService = Depends(get_note_service),
+):
+    if service.update_note(note_id, original_note, title=title) is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return RedirectResponse(url=f"/notes/{note_id}", status_code=303)
 

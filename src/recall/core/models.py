@@ -16,6 +16,7 @@ class Note(Base):
     __tablename__ = "notes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     original_note: Mapped[str] = mapped_column(Text, nullable=False)
     elaborated_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     tags: Mapped[str | None] = mapped_column(Text, nullable=True)

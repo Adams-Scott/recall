@@ -118,6 +118,11 @@ button:hover {
   margin: 0;
 }
 
+.note-card h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
 .note-meta {
   display: flex;
   justify-content: space-between;
@@ -132,6 +137,13 @@ button:hover {
 .empty-state {
   text-align: center;
   color: var(--muted);
+}
+
+.pagination-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 @media (max-width: 800px) {

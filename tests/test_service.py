@@ -45,3 +45,27 @@ def test_update_resets_enrichment_state(tmp_path: Path) -> None:
     assert updated.elaborated_note is None
     assert updated.tags is None
     assert updated.enrichment_status == "pending"
+
+
+def test_enrich_fills_title_when_empty(tmp_path: Path) -> None:
+    service = make_service(tmp_path)
+    note = service.create_note("Submit travel reimbursement on Monday", title="")
+    assert note.title is None
+
+    enriched = service.enrich_note(note.id)
+    assert enriched is not None
+    assert enriched.title is not None
+    assert enriched.title != ""
+
+
+def test_search_notes_paginated_uses_page_size_ten(tmp_path: Path) -> None:
+    service = make_service(tmp_path)
+    for idx in range(25):
+        service.create_note(f"Project alpha task {idx}", title=f"Alpha {idx}")
+
+    page_one, total = service.search_notes_paginated("alpha", page=1, page_size=10)
+    page_three, _ = service.search_notes_paginated("alpha", page=3, page_size=10)
+
+    assert total == 25
+    assert len(page_one) == 10
+    assert len(page_three) == 5

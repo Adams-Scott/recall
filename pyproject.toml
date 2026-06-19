@@ -25,6 +25,9 @@ dev = [
 [tool.setuptools]
 package-dir = {"" = "src"}
 
+[tool.setuptools.package-data]
+"recall.web" = ["templates/*.html", "static/*"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
