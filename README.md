@@ -21,8 +21,56 @@ The first implementation uses:
 2. Open the web interface on port 8001.
 3. Use the API on port 8000 for JSON access.
 
+### Docker Compose commands
+
+Start all services in the background:
+
+```bash
+docker compose up -d
+```
+
+Stop all services:
+
+```bash
+docker compose down
+```
+
+Rebuild images and restart services:
+
+```bash
+docker compose up -d --build
+```
+
+Rebuild and restart a single service (example: worker):
+
+```bash
+docker compose up -d --build worker
+```
+
 ## Notes
 
 - The original note is preserved.
 - Enrichment output is stored separately from the source note.
 - Search scans the original note, elaboration, and tags.
+
+## Worker LLM Configuration
+
+The worker reads AI settings from a runtime YAML file at `recall_data/llm_config.yaml`
+(mounted in containers as `/data/llm_config.yaml`).
+
+- If the file does not exist, the worker creates it on startup.
+- Default provider is `ollama`.
+- You can point to your network Ollama server by setting `ollama.base_url`.
+
+Example:
+
+```yaml
+provider: ollama
+ollama:
+	base_url: http://192.168.1.50:11434
+	model: llama3.1:8b
+	timeout_seconds: 30
+```
+
+If Ollama is unreachable or returns invalid JSON, enrichment is marked as `error`
+for that note with the failure reason in `last_enrichment_error`.

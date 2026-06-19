@@ -1,23 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div>
-    <p class="eyebrow">Recall</p>
-    <h1>Capture fast, find instantly.</h1>
-    <p class="lede">Create notes and search enriched memory cues without leaving this page.</p>
-  </div>
-
-  <form class="card stack" method="post" action="/notes">
-    <label for="title">Title (optional)</label>
-    <input id="title" name="title" placeholder="Leave blank to auto-generate after enrichment" />
-    <label for="original_note">New note</label>
-    <textarea id="original_note" name="original_note" rows="4" placeholder="Something hard to remember..."></textarea>
-    <button type="submit">Save note</button>
-  </form>
-</section>
-
-<section id="search-panel" class="toolbar card">
-  <form method="get" action="/">
+<section class="toolbar card">
+  <form method="get" action="/search">
     <label for="q">Search notes</label>
     <div class="search-row">
       <input id="q" name="q" value="{{ query }}" placeholder="Search title, original note, enriched text, or tags" />
@@ -57,10 +41,10 @@
   <span>Showing page {{ page }} of {{ total_pages }} ({{ total_results }} results)</span>
   <div class="row">
     {% if page > 1 %}
-    <a href="/?q={{ query }}&page={{ page - 1 }}">Previous</a>
+    <a href="/search?q={{ query }}&page={{ page - 1 }}">Previous</a>
     {% endif %}
     {% if page < total_pages %}
-    <a href="/?q={{ query }}&page={{ page + 1 }}">Next</a>
+    <a href="/search?q={{ query }}&page={{ page + 1 }}">Next</a>
     {% endif %}
   </div>
 </section>

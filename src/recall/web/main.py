@@ -12,6 +12,7 @@ from recall.core.config import settings
 from recall.core.db import get_session, init_db
 from recall.core.llm import build_llm_client
 from recall.core.service import NoteService
+from recall.core.worker_status import load_worker_status
 
 
 app = FastAPI(title=f"{settings.app_name} Web")
@@ -53,6 +54,31 @@ def home(request: Request, q: str = "", page: int = 1, service: NoteService = De
             "page_size": page_size,
             "total_results": total_results,
             "total_pages": total_pages,
+        },
+    )
+
+
+@app.get("/search", response_class=HTMLResponse)
+def search_page(request: Request, q: str = "", page: int = 1, service: NoteService = Depends(get_note_service)):
+    target = app.url_path_for("home")
+    if q.strip() or page > 1:
+        target = f"{target}?q={q}&page={max(page, 1)}"
+    return RedirectResponse(url=target, status_code=307)
+
+
+@app.get("/worker-health", response_class=HTMLResponse)
+def worker_health(request: Request, service: NoteService = Depends(get_note_service)):
+    worker_status = load_worker_status()
+    status_counts = service.get_status_counts()
+    return templates.TemplateResponse(
+        request,
+        "worker_health.html",
+        context={
+            "request": request,
+            "app_name": settings.app_name,
+            "status_counts": status_counts,
+            "last_check_in": worker_status.last_check_in,
+            "last_processed": worker_status.last_processed,
         },
     )
 

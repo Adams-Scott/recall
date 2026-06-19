@@ -26,6 +26,16 @@ class NoteService:
         statement = select(Note).order_by(Note.updated_at.desc(), Note.id.desc())
         return list(self.session.scalars(statement).all())
 
+    def get_status_counts(self) -> dict[str, int]:
+        pending = self.session.scalar(select(func.count()).where(Note.enrichment_status == "pending")) or 0
+        in_progress = self.session.scalar(select(func.count()).where(Note.enrichment_status == "in_progress")) or 0
+        done = self.session.scalar(select(func.count()).where(Note.enrichment_status == "done")) or 0
+        return {
+            "pending": int(pending),
+            "in_progress": int(in_progress),
+            "done": int(done),
+        }
+
     def get_note(self, note_id: int) -> Note | None:
         return self.session.get(Note, note_id)
 
@@ -143,7 +153,10 @@ class NoteService:
         if note is None:
             return None
 
-        note.enrichment_status = "error"
+        note.elaborated_note = None
+        note.tags = None
+        note.enriched_at = None
+        note.enrichment_status = "pending"
         note.last_enrichment_error = error_message
         note.updated_at = datetime.now(UTC)
         self.session.commit()

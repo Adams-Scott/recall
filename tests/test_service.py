@@ -69,3 +69,17 @@ def test_search_notes_paginated_uses_page_size_ten(tmp_path: Path) -> None:
     assert total == 25
     assert len(page_one) == 10
     assert len(page_three) == 5
+
+
+def test_record_enrichment_failure_resets_to_pending(tmp_path: Path) -> None:
+    service = make_service(tmp_path)
+    note = service.create_note("Retry me")
+    service.enrich_note(note.id)
+
+    failed = service.record_enrichment_failure(note.id, "temporary network failure")
+    assert failed is not None
+    assert failed.enrichment_status == "pending"
+    assert failed.elaborated_note is None
+    assert failed.tags is None
+    assert failed.enriched_at is None
+    assert failed.last_enrichment_error is not None

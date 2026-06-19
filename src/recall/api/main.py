@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from recall.core.config import settings
 from recall.core.db import get_session, init_db
 from recall.core.llm import build_llm_client
+from recall.core.runtime_llm_config import load_or_create_runtime_llm_config
 from recall.core.schemas import EnrichmentResponse, NoteCreate, NoteRead, NoteUpdate, SearchResult
 from recall.core.service import NoteService
 
@@ -65,7 +66,17 @@ def search_notes(q: str = "", service: NoteService = Depends(get_note_service)):
 
 
 @app.post("/bot/process-pending", response_model=EnrichmentResponse)
-def process_pending_notes(limit: int = 10, service: NoteService = Depends(get_note_service)):
+def process_pending_notes(limit: int = 10, session: Session = Depends(get_session)):
+    runtime_config, _config_path = load_or_create_runtime_llm_config()
+    service = NoteService(
+        session=session,
+        llm_client=build_llm_client(
+            runtime_config.provider,
+            ollama_base_url=runtime_config.ollama.base_url,
+            ollama_model=runtime_config.ollama.model,
+            ollama_timeout_seconds=runtime_config.ollama.timeout_seconds,
+        ),
+    )
     processed = 0
     for note in service.claim_pending_notes(limit=limit):
         try:

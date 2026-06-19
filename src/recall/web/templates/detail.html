@@ -10,10 +10,10 @@
   <p>{{ note.elaborated_note or "Waiting for enrichment." }}</p>
   <p class="eyebrow">Tags</p>
   <p>{{ note.tags or "No tags yet." }}</p>
-  <p>Status: {{ note.enrichment_status }}</p>
+  <p>Status: <span class="status-pill status-{{ note.enrichment_status.replace('_', '-') }}">{{ note.enrichment_status.replace('_', ' ')|title }}</span></p>
   <div class="row">
     <a href="/notes/{{ note.id }}/edit">Edit</a>
-    <form method="post" action="/notes/{{ note.id }}/delete">
+    <form method="post" action="/notes/{{ note.id }}/delete" onsubmit="return confirm('Delete this note permanently?');">
       <button type="submit">Delete</button>
     </form>
   </div>
