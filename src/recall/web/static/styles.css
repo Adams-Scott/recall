@@ -1,0 +1,147 @@
+:root {
+  color-scheme: light;
+  --bg: #f4efe6;
+  --panel: rgba(255, 255, 255, 0.84);
+  --ink: #1f2328;
+  --muted: #5d6670;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --border: rgba(31, 35, 40, 0.12);
+  --shadow: 0 24px 70px rgba(31, 35, 40, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 32%),
+    radial-gradient(circle at top right, rgba(244, 174, 74, 0.2), transparent 24%),
+    linear-gradient(180deg, #faf7f0 0%, var(--bg) 100%);
+}
+
+a {
+  color: var(--accent-strong);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.shell {
+  width: min(1100px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  margin-bottom: 1.25rem;
+}
+
+.card {
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+
+.stack {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.lede {
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.toolbar {
+  margin-bottom: 1.25rem;
+}
+
+.search-row,
+.row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+input,
+textarea {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.75);
+  padding: 0.9rem 1rem;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  padding: 0.85rem 1.2rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-strong);
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.note-card p {
+  margin: 0;
+}
+
+.note-meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tags {
+  color: var(--accent-strong);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--muted);
+}
+
+@media (max-width: 800px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .search-row,
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
