@@ -14,6 +14,8 @@ The first implementation uses:
 - API server: CRUD, search, and bot control endpoints
 - Web interface: browser-based note management
 - Worker: scheduled enrichment of unprocessed notes
+- Tags page: manage predefined tags used during enrichment
+- Context page: edit the shared AI context file used during enrichment
 
 ## Run locally
 
@@ -74,3 +76,11 @@ ollama:
 
 If Ollama is unreachable or returns invalid JSON, enrichment is marked as `error`
 for that note with the failure reason in `last_enrichment_error`.
+
+## AI context file
+
+The shared context file lives at `recall_data/context.md` and is mounted inside
+containers as `/data/context.md`.
+
+- Use the Context page to add personal facts and preferences.
+- The file is sent with every enrichment request.

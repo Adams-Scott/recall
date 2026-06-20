@@ -8,7 +8,7 @@ from recall.core.config import settings
 from recall.core.db import SessionLocal, init_db
 from recall.core.llm import build_llm_client
 from recall.core.runtime_llm_config import load_or_create_runtime_llm_config
-from recall.core.service import NoteService
+from recall.core.service import build_note_service
 from recall.core.worker_status import record_worker_check_in
 
 
@@ -16,9 +16,9 @@ def process_pending_notes() -> int:
     session = SessionLocal()
     try:
         runtime_config, _config_path = load_or_create_runtime_llm_config()
-        service = NoteService(
-            session=session,
-            llm_client=build_llm_client(
+        service = build_note_service(
+            session,
+            build_llm_client(
                 runtime_config.provider,
                 ollama_base_url=runtime_config.ollama.base_url,
                 ollama_model=runtime_config.ollama.model,

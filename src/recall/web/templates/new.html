@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card stack">
+  <a href="/">Back</a>
+  <div>
+    <p class="eyebrow">New note</p>
+    <h1>Write a note</h1>
+    <p class="lede">Save it here, then the app will send you to the note page with the saved toast.</p>
+  </div>
+
+  <form method="post" action="/notes" class="stack">
+    <label for="title">Title (optional)</label>
+    <input id="title" name="title" placeholder="Leave blank to auto-generate after enrichment" />
+    <label for="original_note">Note</label>
+    <textarea id="original_note" name="original_note" rows="8" placeholder="Something hard to remember..."></textarea>
+    <button type="submit">Save note</button>
+  </form>
+</section>
+{% endblock %}

@@ -46,7 +46,8 @@ def get_session() -> Iterator[Session]:
 
 
 def init_db() -> None:
-    from recall.core.models import Note  # noqa: F401
+    from recall.core.models import Note, Tag  # noqa: F401
+    from recall.core.service import DEFAULT_TAG_NAMES
 
     Base.metadata.create_all(bind=engine)
 
@@ -57,3 +58,9 @@ def init_db() -> None:
         }
         if "title" not in columns:
             conn.execute(text("ALTER TABLE notes ADD COLUMN title VARCHAR(255)"))
+
+    with SessionLocal() as session:
+        if session.scalar(text("SELECT COUNT(*) FROM tags")) == 0:
+            for tag_name in DEFAULT_TAG_NAMES:
+                session.add(Tag(name=tag_name, enabled=True))
+            session.commit()

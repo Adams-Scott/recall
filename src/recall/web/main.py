@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from recall.core.config import settings
 from recall.core.db import get_session, init_db
 from recall.core.llm import build_llm_client
-from recall.core.service import NoteService
+from recall.core.service import NoteService, build_note_service
 from recall.core.worker_status import load_worker_status
 
 
@@ -27,7 +27,7 @@ def on_startup() -> None:
 
 
 def get_note_service(session: Session = Depends(get_session)) -> NoteService:
-    return NoteService(session=session, llm_client=build_llm_client(settings.llm_provider))
+    return build_note_service(session, build_llm_client(settings.llm_provider))
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -89,8 +89,20 @@ def create_note(
     title: str = Form(default=""),
     service: NoteService = Depends(get_note_service),
 ):
-    service.create_note(original_note, title=title)
-    return RedirectResponse(url="/", status_code=303)
+    note = service.create_note(original_note, title=title)
+    return RedirectResponse(url=f"/notes/{note.id}", status_code=303)
+
+
+@app.get("/notes/new", response_class=HTMLResponse)
+def new_note(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "new.html",
+        context={
+            "request": request,
+            "app_name": settings.app_name,
+        },
+    )
 
 
 @app.get("/notes/{note_id}", response_class=HTMLResponse)
@@ -142,3 +154,59 @@ def delete_note(note_id: int, service: NoteService = Depends(get_note_service)):
     if not service.delete_note(note_id):
         raise HTTPException(status_code=404, detail="Note not found")
     return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/tags", response_class=HTMLResponse)
+def tags_page(request: Request, service: NoteService = Depends(get_note_service)):
+    return templates.TemplateResponse(
+        request,
+        "tags.html",
+        context={
+            "request": request,
+            "app_name": settings.app_name,
+            "tags": service.list_tags(),
+        },
+    )
+
+
+@app.post("/tags")
+def create_tag(name: str = Form(...), service: NoteService = Depends(get_note_service)):
+    created = service.create_tag(name)
+    if created is None:
+        raise HTTPException(status_code=400, detail="Tag name is required")
+    return RedirectResponse(url="/tags", status_code=303)
+
+
+@app.post("/tags/{tag_id}/toggle")
+def toggle_tag(tag_id: int, service: NoteService = Depends(get_note_service)):
+    if service.toggle_tag(tag_id) is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return RedirectResponse(url="/tags", status_code=303)
+
+
+@app.post("/tags/{tag_id}/delete")
+def delete_tag(tag_id: int, service: NoteService = Depends(get_note_service)):
+    if not service.delete_tag(tag_id):
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return RedirectResponse(url="/tags", status_code=303)
+
+
+@app.get("/context", response_class=HTMLResponse)
+def context_page(request: Request, service: NoteService = Depends(get_note_service)):
+    context_path = service.context_path
+    return templates.TemplateResponse(
+        request,
+        "context.html",
+        context={
+            "request": request,
+            "app_name": settings.app_name,
+            "context_text": service.get_context_text(),
+            "context_path": context_path,
+        },
+    )
+
+
+@app.post("/context")
+def save_context(context_text: str = Form(default=""), service: NoteService = Depends(get_note_service)):
+    service.save_context_text(context_text)
+    return RedirectResponse(url="/context", status_code=303)

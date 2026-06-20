@@ -1,18 +1,28 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from recall.core.context_store import load_context_text, save_context_text
+from recall.core.config import settings
 from recall.core.llm import BaseLLMClient
-from recall.core.models import Note
+from recall.core.models import Note, Tag
+
+
+DEFAULT_TAG_NAMES = ["personal", "home", "work", "family", "health", "travel", "idea", "todo"]
 
 
 class NoteService:
-    def __init__(self, session: Session, llm_client: BaseLLMClient):
+    def __init__(self, session: Session, llm_client: BaseLLMClient, context_path: Path | None = None):
         self.session = session
         self.llm_client = llm_client
+        self.context_path = context_path or settings.context_path
+
+    def refresh_runtime_inputs(self) -> tuple[str, list[str]]:
+        return self.get_context_text(), self.get_enabled_tag_names()
 
     def create_note(self, original_note: str, title: str = "") -> Note:
         normalized_title = title.strip() or None
@@ -38,6 +48,51 @@ class NoteService:
 
     def get_note(self, note_id: int) -> Note | None:
         return self.session.get(Note, note_id)
+
+    def list_tags(self) -> list[Tag]:
+        statement = select(Tag).order_by(Tag.enabled.desc(), Tag.name.asc())
+        return list(self.session.scalars(statement).all())
+
+    def create_tag(self, name: str, enabled: bool = True) -> Tag | None:
+        normalized = name.strip().lower()
+        if not normalized:
+            return None
+        existing = self.session.scalar(select(Tag).where(Tag.name == normalized))
+        if existing is not None:
+            return existing
+        tag = Tag(name=normalized, enabled=enabled)
+        self.session.add(tag)
+        self.session.commit()
+        self.session.refresh(tag)
+        return tag
+
+    def toggle_tag(self, tag_id: int) -> Tag | None:
+        tag = self.session.get(Tag, tag_id)
+        if tag is None:
+            return None
+        tag.enabled = not tag.enabled
+        tag.updated_at = datetime.now(UTC)
+        self.session.commit()
+        self.session.refresh(tag)
+        return tag
+
+    def delete_tag(self, tag_id: int) -> bool:
+        tag = self.session.get(Tag, tag_id)
+        if tag is None:
+            return False
+        self.session.delete(tag)
+        self.session.commit()
+        return True
+
+    def get_enabled_tag_names(self) -> list[str]:
+        statement = select(Tag.name).where(Tag.enabled.is_(True)).order_by(Tag.name.asc())
+        return list(self.session.scalars(statement).all())
+
+    def get_context_text(self) -> str:
+        return load_context_text(self.context_path)
+
+    def save_context_text(self, text: str) -> Path:
+        return save_context_text(self.context_path, text)
 
     def update_note(self, note_id: int, original_note: str, title: str = "") -> Note | None:
         note = self.get_note(note_id)
@@ -135,7 +190,8 @@ class NoteService:
         if note is None:
             return None
 
-        result = self.llm_client.enrich(note.original_note)
+        context_text, enabled_tags = self.refresh_runtime_inputs()
+        result = self.llm_client.enrich(note.original_note, context_text=context_text, allowed_tags=enabled_tags)
         if not note.title:
             note.title = result.title
         note.elaborated_note = result.elaborated_note
@@ -162,3 +218,7 @@ class NoteService:
         self.session.commit()
         self.session.refresh(note)
         return note
+
+
+def build_note_service(session: Session, llm_client: BaseLLMClient, context_path: Path | None = None) -> NoteService:
+    return NoteService(session=session, llm_client=llm_client, context_path=context_path)

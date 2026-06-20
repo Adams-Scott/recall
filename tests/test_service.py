@@ -7,14 +7,15 @@ from sqlalchemy.orm import sessionmaker
 
 from recall.core.db import Base
 from recall.core.llm import HeuristicLLMClient
-from recall.core.service import NoteService
+from recall.core.models import Tag
+from recall.core.service import NoteService, build_note_service
 
 
 def make_service(tmp_path: Path) -> NoteService:
     engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}", connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
-    return NoteService(session=session_factory(), llm_client=HeuristicLLMClient())
+    return NoteService(session=session_factory(), llm_client=HeuristicLLMClient(), context_path=tmp_path / "context.md")
 
 
 def test_create_and_search_notes(tmp_path: Path) -> None:
@@ -83,3 +84,38 @@ def test_record_enrichment_failure_resets_to_pending(tmp_path: Path) -> None:
     assert failed.tags is None
     assert failed.enriched_at is None
     assert failed.last_enrichment_error is not None
+
+
+def test_tag_management_and_context_file(tmp_path: Path) -> None:
+    service = make_service(tmp_path)
+
+    tag = service.create_tag("Travel")
+    assert tag is not None
+    assert tag.name == "travel"
+    assert tag.enabled is True
+
+    toggled = service.toggle_tag(tag.id)
+    assert toggled is not None
+    assert toggled.enabled is False
+
+    assert service.create_tag("Travel") == toggled
+
+    service.save_context_text("Duckie is my dog.")
+    assert service.get_context_text().strip() == "Duckie is my dog."
+
+
+def test_enrich_note_uses_enabled_tags_and_context(tmp_path: Path) -> None:
+    service = make_service(tmp_path)
+    service.create_tag("travel")
+    service.create_tag("dog")
+    service.toggle_tag(service.create_tag("dog").id)  # disable the first dog tag
+    service.create_tag("pet")
+    service.save_context_text("Duckie is my dog.")
+
+    note = service.create_note("Take Duckie for a walk on the trip")
+    enriched = service.enrich_note(note.id)
+
+    assert enriched is not None
+    assert enriched.tags is not None
+    assert "travel" in enriched.tags or "pet" in enriched.tags or "dog" in enriched.tags
+    assert "Duckie is my dog." in enriched.elaborated_note

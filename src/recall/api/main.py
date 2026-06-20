@@ -8,7 +8,7 @@ from recall.core.db import get_session, init_db
 from recall.core.llm import build_llm_client
 from recall.core.runtime_llm_config import load_or_create_runtime_llm_config
 from recall.core.schemas import EnrichmentResponse, NoteCreate, NoteRead, NoteUpdate, SearchResult
-from recall.core.service import NoteService
+from recall.core.service import NoteService, build_note_service
 
 
 app = FastAPI(title=settings.app_name)
@@ -20,7 +20,7 @@ def on_startup() -> None:
 
 
 def get_note_service(session: Session = Depends(get_session)) -> NoteService:
-    return NoteService(session=session, llm_client=build_llm_client(settings.llm_provider))
+    return build_note_service(session, build_llm_client(settings.llm_provider))
 
 
 @app.get("/health")
@@ -68,9 +68,9 @@ def search_notes(q: str = "", service: NoteService = Depends(get_note_service)):
 @app.post("/bot/process-pending", response_model=EnrichmentResponse)
 def process_pending_notes(limit: int = 10, session: Session = Depends(get_session)):
     runtime_config, _config_path = load_or_create_runtime_llm_config()
-    service = NoteService(
-        session=session,
-        llm_client=build_llm_client(
+    service = build_note_service(
+        session,
+        build_llm_client(
             runtime_config.provider,
             ollama_base_url=runtime_config.ollama.base_url,
             ollama_model=runtime_config.ollama.model,
